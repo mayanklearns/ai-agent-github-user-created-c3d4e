@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const usernameInput = document.getElementById('username-input');
     const githubCreatedAtDiv = document.getElementById('github-created-at');
     const errorMessageDiv = document.getElementById('error-message');
+    const statusDiv = document.getElementById('github-status');
 
     // Helper function to format date to YYYY-MM-DD UTC
     const formatDate = (dateString) => {
@@ -21,10 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         githubCreatedAtDiv.style.display = 'none'; // Hide previous results
         errorMessageDiv.style.display = 'none';     // Hide previous errors
+        statusDiv.textContent = 'Looking up GitHub user...'; // Announce start
 
         const username = usernameInput.value.trim();
         if (!username) {
-            errorMessageDiv.textContent = 'Please enter a GitHub username.';
+            const errorText = 'Please enter a GitHub username.';
+            errorMessageDiv.textContent = errorText;
+            statusDiv.textContent = `Error: ${errorText}`;
             errorMessageDiv.style.display = 'block';
             return;
         }
@@ -44,17 +48,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 if (data.created_at) {
                     githubCreatedAtDiv.textContent = `Account created on: ${formatDate(data.created_at)}`;
+                    statusDiv.textContent = `User ${username} found. Account creation date is displayed.`;
                     githubCreatedAtDiv.style.display = 'block';
                 } else {
-                    errorMessageDiv.textContent = 'Could not find creation date for this user.';
+                    const errorText = 'Could not find creation date for this user.';
+                    errorMessageDiv.textContent = errorText;
+                    statusDiv.textContent = `Error: ${errorText}`;
                     errorMessageDiv.style.display = 'block';
                 }
             } else {
-                errorMessageDiv.textContent = data.message || 'Failed to fetch GitHub user data.';
+                const errorText = data.message || 'Failed to fetch GitHub user data.';
+                errorMessageDiv.textContent = errorText;
+                statusDiv.textContent = `Error: ${errorText}`;
                 errorMessageDiv.style.display = 'block';
             }
         } catch (error) {
-            errorMessageDiv.textContent = 'Network error or unable to connect to GitHub API.';
+            const errorText = 'Network error or unable to connect to GitHub API.';
+            errorMessageDiv.textContent = errorText;
+            statusDiv.textContent = `Error: ${errorText}`;
             errorMessageDiv.style.display = 'block';
             console.error('Fetch error:', error);
         }

@@ -1,51 +1,58 @@
-## PLAN.md
+# PLAN.md
 
-### Architectural Vision
-- `index.html`: Main HTML file containing the form, input fields, and the display area for the creation date. It will link to Bootstrap CSS, a custom `style.css`, and a `script.js` file.
-- `style.css`: Custom CSS for minor styling adjustments if needed.
-- `script.js`: JavaScript file to handle fetching data from the GitHub API and updating the DOM.
-- `README.md`: Project documentation.
-- `LICENSE`: Existing license file.
+## 1. Architectural Vision
 
-### Component Strategy
-- **HTML Structure (`index.html`):**
-    - Use Bootstrap 5 CDN for styling.
-    - A `div` with class `container` for content centering.
-    - A `h1` for the page title.
-    - A `form` element with `id="github-user-23f3004197"`.
-        - Inside the form, a `div` with class `mb-3` for the username input.
-            - `label` for username.
-            - `input` with `type="text"`, `id="username-input"`, `class="form-control"`, and `placeholder="Enter GitHub username"`.
-        - A `button` with `type="submit"`, `class="btn btn-primary"`, and text "Fetch Creation Date".
-    - A `div` to display the creation date with `id="github-created-at"`. Initially, it will be empty or contain a placeholder.
-    - A `div` to display error messages with `id="error-message"` with text color danger class.
+This plan addresses the requirement to add an `aria-live` region to the existing GitHub user lookup application. The goal is to provide screen reader users with status updates during the API request lifecycle (start, success, failure).
 
-### Styling Strategy
-- Use Bootstrap 5 CDN for responsive design and basic styling.
-- `style.css` will be used for any minor custom styles, mainly to ensure good spacing or alignment if Bootstrap defaults are not sufficient. I will start with an empty `style.css` and add styles only if necessary.
+- **`index.html`**: Will be modified to include a new `div` element with the ID `github-status`. This element will have the `aria-live="polite"` attribute and be visually hidden but accessible to screen readers.
+- **`script.js`**: Will be updated to control the text content of the `#github-status` element, reflecting the current state of the user lookup process.
 
-### Logic & Interactivity (`script.js`)
-1.  **Event Listener:** Attach a `submit` event listener to the form `github-user-23f3004197`.
-2.  **Prevent Default:** Prevent the default form submission behavior.
-3.  **Get Username:** Retrieve the value from the username input field (`#username-input`).
-4.  **Get Token (Optional):** Check if a `token` query parameter exists in the URL. If it does, include it in the API request header.
-5.  **GitHub API Call:**
-    - Construct the GitHub API URL: `https://api.github.com/users/{username}`.
-    - Use `fetch` to make an asynchronous GET request to the API.
-    - If a token is present, add an `Authorization` header: `Bearer YOUR_TOKEN`.
-6.  **Handle Response:**
-    - Parse the JSON response.
-    - If the response is successful:
-        - Extract the `created_at` field from the response.
-        - Format the `created_at` date to `YYYY-MM-DD UTC`.
-        - Display the formatted date in the `#github-created-at` element.
-        - Clear any previous error messages.
-    - If there's an error (e.g., user not found, network issue):
-        - Display an appropriate error message in `#error-message`.
-        - Clear the `#github-created-at` element.
-7.  **Date Formatting:** Implement a helper function to format the ISO date string to `YYYY-MM-DD UTC`.
+## 2. Component Strategy (HTML)
 
-### Evaluation Criteria Compliance
-- [x] **Form element with ID 'github-user-23f3004197':** The `index.html` will contain `<form id="github-user-23f3004197">`.
-- [x] **Element with ID 'github-created-at' contains text that looks like a date (e.g., includes a year starting with '20'):** The `script.js` will fetch the `created_at` date from the GitHub API and display it in `YYYY-MM-DD UTC` format within `<div id="github-created-at">`.
-- [x] **Script on the page that fetches data from the GitHub API (https://api.github.com/users/):** The `script.js` will use `fetch` to interact with `https://api.github.com/users/{username}`.
+- A new `div` will be added to `index.html`.
+- **Element**: `<div id="github-status" class="visually-hidden" aria-live="polite"></div>`
+- **Rationale**:
+    - `id="github-status"`: Meets the requirement for the specific ID.
+    - `aria-live="polite"`: Fulfills the accessibility requirement, ensuring screen readers announce changes without interrupting the user.
+    - `class="visually-hidden"`: This is a Bootstrap 5 utility class that hides the element visually but keeps it available for screen readers. This is the correct approach for an `aria-live` region that is not meant to be a primary visual component. It's superior to `display: none;` which would hide it from assistive technologies.
+
+This element will be placed near the other status-related `divs` for logical grouping.
+
+## 3. Styling Strategy (CSS)
+
+- No changes to `style.css` are required.
+- The Bootstrap 5 `visually-hidden` class will be used directly in the HTML to manage the appearance of the new `aria-live` element.
+
+## 4. Logic & Interactivity (JavaScript)
+
+The `script.js` file will be modified as follows:
+
+1.  **Get Element Reference**: At the beginning of the script, get a reference to the new `#github-status` element.
+    ```javascript
+    const statusDiv = document.getElementById('github-status');
+    ```
+2.  **Update on Fetch Start**: Inside the `'submit'` event listener, before the `try` block, update the status to indicate the lookup has started.
+    ```javascript
+    statusDiv.textContent = 'Looking up GitHub user...';
+    ```
+3.  **Update on Success**: In the `try` block, upon a successful API response (`response.ok`), update the status to announce the success.
+    ```javascript
+    statusDiv.textContent = 'User found. Account creation date is displayed.';
+    ```
+4.  **Update on Failure**: In both the `else` block (for API errors like 404) and the `catch` block (for network errors), update the status to announce the failure, including the specific error message.
+    ```javascript
+    statusDiv.textContent = `Error: ${data.message || 'Failed to fetch GitHub user data.'}`;
+    // and
+    statusDiv.textContent = 'Error: Network error or unable to connect to GitHub API.';
+    ```
+
+## 5. Evaluation Criteria Compliance Checklist
+
+- [x] **The element with ID 'github-status' has an aria-live attribute set to 'polite'.**
+    - This will be achieved by adding `<div id="github-status" aria-live="polite" ...>` to `index.html`.
+- [x] **There is a script on the page that references 'github-status'.**
+    - `script.js` will be modified to get the element by ID and update its `textContent` property, satisfying this requirement.
+- [x] **Ensure existing functionality remains intact.**
+    - The changes are additive. The existing visual feedback (`#github-created-at` and `#error-message` divs) will continue to function as before. The new `aria-live` region provides an additional, non-visual layer of feedback.
+- [x] **Update `README.md` with new URLs.**
+    - The `README.md` will be updated with the provided repository and live demo URLs in the final review phase.
